@@ -16,4 +16,11 @@ export interface Recipe {
   instructions: string[]
   image: string
   rating: number
+  notes?: string[]
+}
+
+export interface ShoppingListItem extends Ingredient {
+  recipeId: string
+  recipeTitle: string
+  checked: boolean
 }

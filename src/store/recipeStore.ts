@@ -1,13 +1,19 @@
 import { create } from 'zustand'
-import { Recipe } from '@/types/recipe'
+import { Recipe, ShoppingListItem } from '@/types/recipe'
 
 interface RecipeState {
   recipes: Recipe[]
   favorites: Recipe[]
+  shoppingList: ShoppingListItem[]
+  searchQuery: string
   addToFavorites: (recipe: Recipe) => void
   removeFromFavorites: (id: string) => void
-  searchQuery: string
   setSearchQuery: (query: string) => void
+  addToShoppingList: (recipeId: string) => void
+  removeFromShoppingList: (recipeId: string) => void
+  toggleShoppingItem: (itemId: string) => void
+  adjustServings: (recipeId: string, newServings: number) => void
+  addNote: (recipeId: string, note: string) => void
 }
 
 export const useRecipeStore = create<RecipeState>((set) => ({
@@ -34,18 +40,79 @@ export const useRecipeStore = create<RecipeState>((set) => ({
       ],
       image: 'https://example.com/carbonara.jpg',
       rating: 4.5,
-    },
-    // Add more recipe examples here
+      notes: []
+    }
   ],
   favorites: [],
+  shoppingList: [],
+  searchQuery: '',
+  
   addToFavorites: (recipe) =>
     set((state) => ({
       favorites: [...state.favorites, recipe],
     })),
+    
   removeFromFavorites: (id) =>
     set((state) => ({
       favorites: state.favorites.filter((recipe) => recipe.id !== id),
     })),
-  searchQuery: '',
+    
   setSearchQuery: (query) => set({ searchQuery: query }),
+  
+  addToShoppingList: (recipeId) =>
+    set((state) => {
+      const recipe = state.recipes.find((r) => r.id === recipeId)
+      if (!recipe) return state
+      
+      const newItems = recipe.ingredients.map((ing) => ({
+        ...ing,
+        recipeId,
+        recipeTitle: recipe.title,
+        checked: false,
+      }))
+      
+      return {
+        shoppingList: [...state.shoppingList, ...newItems],
+      }
+    }),
+    
+  removeFromShoppingList: (recipeId) =>
+    set((state) => ({
+      shoppingList: state.shoppingList.filter((item) => item.recipeId !== recipeId),
+    })),
+    
+  toggleShoppingItem: (itemId) =>
+    set((state) => ({
+      shoppingList: state.shoppingList.map((item) =>
+        item.name === itemId ? { ...item, checked: !item.checked } : item
+      ),
+    })),
+    
+  adjustServings: (recipeId, newServings) =>
+    set((state) => ({
+      recipes: state.recipes.map((recipe) =>
+        recipe.id === recipeId
+          ? {
+              ...recipe,
+              servings: newServings,
+              ingredients: recipe.ingredients.map((ing) => ({
+                ...ing,
+                amount: (ing.amount * newServings) / recipe.servings,
+              })),
+            }
+          : recipe
+      ),
+    })),
+    
+  addNote: (recipeId, note) =>
+    set((state) => ({
+      recipes: state.recipes.map((recipe) =>
+        recipe.id === recipeId
+          ? {
+              ...recipe,
+              notes: [...(recipe.notes || []), note],
+            }
+          : recipe
+      ),
+    })),
 }))
